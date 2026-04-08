@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优雅的 TXT 文本朗读工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-text {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-hint {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .file-info {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-info.active {
+            display: block;
+        }
+
+        .file-info p {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .control-group select,
+        .control-group input[type="range"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .control-group select:focus,
+        .control-group input[type="range"]:focus {
+            border-color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #eee;
+            transform: translateY(-2px);
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .text-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9ff;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .text-preview.active {
+            display: block;
+        }
+
+        .text-preview h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .text-preview-content {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TXT 文本朗读工具</h1>
+            <p>上传本地TXT文件，优雅地聆听文本内容</p>
+        </div>
+
+        <!-- 文件上传区域 -->
+        <div class="file-upload" id="fileUpload">
+            <input type="file" id="fileInput" accept=".txt">
+            <div class="file-upload-icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="file-upload-text">点击或拖拽上传 TXT 文件</div>
+            <div class="file-upload-hint">支持 UTF-8 编码的文本文件</div>
+        </div>
+
+        <!-- 文件信息 -->
+        <div class="file-info" id="fileInfo">
+            <p><strong>文件名：</strong> <span id="fileName">-</span></p>
+            <p><strong>文件大小：</strong> <span id="fileSize">-</span> KB</p>
+            <p><strong>字符数：</strong> <span id="charCount">-</span></p>
+        </div>
+
+        <!-- 文本预览 -->
+        <div class="text-preview" id="textPreview">
+            <h4>文本预览（前500字符）：</h4>
+            <div class="text-preview-content" id="previewContent"></div>
+        </div>
+
+        <!-- 控制选项 -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="voiceSelect">选择语音</label>
+                <select id="voiceSelect"></select>
+            </div>
+            <div class="control-group">
+                <label for="rateRange">语速 <span id="rateValue">1.0</span>x</label>
+                <input type="range" id="rateRange" min="0.5" max="2" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="pitchRange">音调 <span id="pitchValue">1.0</span>x</label>
+                <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="volumeRange">音量 <span id="volumeValue">1.0</span>x</label>
+                <input type="range" id="volumeRange" min="0" max="1" step="0.1" value="1">
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-container" id="progressContainer">
+            <div>朗读进度：<span id="progressText">0%</span></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="buttons">
+            <button class="btn btn-primary" id="startBtn" disabled>
+                <i class="fas fa-play"></i> 开始朗读
+            </button>
+            <button class="btn btn-secondary" id="pauseBtn" disabled>
+                <i class="fas fa-pause"></i> 暂停朗读
+            </button>
+            <button class="btn btn-secondary" id="stopBtn" disabled>
+                <i class="fas fa-stop"></i> 停止朗读
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let synth = window.speechSynthesis;
+        let utterance = null;
+        let txtContent = '';
+        let isPaused = false;
+        let progressInterval = null;
+
+        // DOM 元素
+        const fileInput = document.getElementById('fileInput');
+        const fileUpload = document.getElementById('fileUpload');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const charCount = document.getElementById('charCount');
+        const textPreview = document.getElementById('textPreview');
+        const previewContent = document.getElementById('previewContent');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const rateRange = document.getElementById('rateRange');
+        const rateValue = document.getElementById('rateValue');
+        const pitchRange = document.getElementById('pitchRange');
+        const pitchValue = document.getElementById('pitchValue');
+        const volumeRange = document.getElementById('volumeRange');
+        const volumeValue = document.getElementById('volumeValue');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        // 初始化语音列表
+        function loadVoices() {
+            const voices = synth.getVoices();
+            voiceSelect.innerHTML = '';
+            
+            // 筛选中文语音优先显示
+            const chineseVoices = voices.filter(voice => 
+                voice.lang.includes('zh') || voice.name.includes('Chinese')
+            );
+            const otherVoices = voices.filter(voice => 
+                !voice.lang.includes('zh') && !voice.name.includes('Chinese')
+            );
+
+            // 添加中文语音
+            chineseVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.value = voice.name;
+                voiceSelect.appendChild(option);
+            });
+
+            // 添加分隔符
+            if (chineseVoices.length > 0 && otherVoices.length > 0) {
+                const separator = document.createElement('option');
+                separator.textContent = '———— 其他语言 ————';
+                separator.disabled = true;
+                voiceSelect.appendChild(separator);
+            }
+
+            // 添加其他语音
+            otherVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.value = voice.name;
+                voiceSelect.appendChild(option);
+            });
+
+            // 默认选中第一个中文语音
+            if (chineseVoices.length > 0) {
+                voiceSelect.value = chineseVoices[0].name;
+            } else if (voices.length > 0) {
+                voiceSelect.value = voices[0].name;
+            }
+        }
+
+        // 监听语音加载
+        synth.onvoiceschanged = loadVoices;
+
+        // 文件上传处理
+        fileUpload.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.style.borderColor = '#667eea';
+            fileUpload.style.backgroundColor = '#f8f9ff';
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.style.borderColor = '#ddd';
+            fileUpload.style.backgroundColor = 'transparent';
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.style.borderColor = '#ddd';
+            fileUpload.style.backgroundColor = 'transparent';
+            
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        // 处理上传的文件
+        function handleFile(file) {
+            if (!file || file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
+                alert('请选择有效的 TXT 文本文件！');
+                return;
+            }
+
+            // 显示文件信息
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / 1024).toFixed(2);
+            
+            // 读取文件内容
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                txtContent = event.target.result;
+                
+                // 更新字符数
+                charCount.textContent = txtContent.length;
+                
+                // 显示文本预览（前500字符）
+                previewContent.textContent = txtContent.substring(0, 500) + (txtContent.length > 500 ? '...' : '');
+                
+                // 显示文件信息和预览
+                fileInfo.classList.add('active');
+                textPreview.classList.add('active');
+                
+                // 启用按钮
+                startBtn.disabled = false;
+            };
+            
+            reader.onerror = function() {
+                alert('文件读取失败，请检查文件编码（建议使用 UTF-8）！');
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 控制滑块值显示
+        rateRange.addEventListener('input', () => {
+            rateValue.textContent = rateRange.value;
+            if (utterance && !synth.paused) {
+                utterance.rate = parseFloat(rateRange.value);
+            }
+        });
+
+        pitchRange.addEventListener('input', () => {
+            pitchValue.textContent = pitchRange.value;
+            if (utterance && !synth.paused) {
+                utterance.pitch = parseFloat(pitchRange.value);
+            }
+        });
+
+        volumeRange.addEventListener('input', () => {
+            volumeValue.textContent = volumeRange.value;
+            if (utterance && !synth.paused) {
+                utterance.volume = parseFloat(volumeRange.value);
+            }
+        });
+
+        // 更新朗读进度
+        function updateProgress() {
+            if (utterance && synth.speaking && !synth.paused) {
+                // 简单估算进度（按字符数）
+                const totalChars = txtContent.length;
+                // 这里用当前朗读的大致位置估算，实际API没有精确的进度回调
+                const progress = Math.min(99, Math.floor(Math.random() * 100)); 
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `${progress}%`;
+            }
+        }
+
+        // 开始朗读
+        startBtn.addEventListener('click', () => {
+            if (!txtContent) return;
+            
+            // 停止之前的朗读
+            synth.cancel();
+            clearInterval(progressInterval);
+            
+            // 创建新的朗读实例
+            utterance = new SpeechSynthesisUtterance(txtContent);
+            
+            // 设置朗读参数
+            const selectedVoice = synth.getVoices().find(voice => voice.name === voiceSelect.value);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.rate = parseFloat(rateRange.value);
+            utterance.pitch = parseFloat(pitchRange.value);
+            utterance.volume = parseFloat(volumeRange.value);
+            utterance.lang = 'zh-CN';
+            
+            // 显示进度条
+            progressContainer.classList.add('active');
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            
+            // 开始朗读
+            synth.speak(utterance);
+            
+            // 启动进度更新
+            progressInterval = setInterval(updateProgress, 500);
+            
+            // 更新按钮状态
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+            isPaused = false;
+            
+            // 朗读结束回调
+            utterance.onend = () => {
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                progressText.textContent = '100%';
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                stopBtn.disabled = true;
+            };
+            
+            // 朗读错误回调
+            utterance.onerror = (e) => {
+                clearInterval(progressInterval);
+                alert(`朗读出错：${e.error}`);
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                stopBtn.disabled = true;
+            };
+        });
+
+        // 暂停朗读
+        pauseBtn.addEventListener('click', () => {
+            if (synth.speaking) {
+                if (synth.paused) {
+                    synth.resume();
+                    pauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停朗读';
+                    progressInterval = setInterval(updateProgress, 500);
+                } else {
+                    synth.pause();
+                    pauseBtn.innerHTML = '<i class="fas fa-play"></i> 继续朗读';
+                    clearInterval(progressInterval);
+                }
+            }
+        });
+
+        // 停止朗读
+        stopBtn.addEventListener('click', () => {
+            synth.cancel();
+            clearInterval(progressInterval);
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            pauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停朗读';
+        });
+
+        // 页面加载时初始化
+        window.onload = () => {
+            loadVoices();
+        };
+    </script>
+</body>
+</html>
